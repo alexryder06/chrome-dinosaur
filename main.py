@@ -25,6 +25,9 @@ CLOUD = pygame.image.load(os.path.join("Assets\Other", "Cloud.png"))
 
 BG = pygame.image.load(os.path.join("Assets\Other", "Track.png"))
 
+pygame.mixer.music.load("Assets\Other\intro.mp3")
+pygame.mixer.music.play()
+
 class Dinosaur:
     X_POS = 80
     Y_POS = 310
@@ -32,6 +35,8 @@ class Dinosaur:
     JUMP_VEL = 8.5
 
     def __init__(self):
+        
+        self.SonidoSalto = pygame.mixer.Sound("Assets\Other\SALTO.mp3")
         self.duck_img = DUCKING
         self.run_img = RUNNING
         self.jump_img = JUMPING
@@ -59,6 +64,7 @@ class Dinosaur:
             self.step_index = 0
 
         if userInput[pygame.K_UP] and not self.dino_jump:
+            self.SonidoSalto.play()
             self.dino_duck = False
             self.dino_run = False
             self.dino_jump = True
@@ -86,6 +92,7 @@ class Dinosaur:
         self.step_index += 1
 
     def jump(self):
+        
         self.image = self.jump_img
         if self.dino_jump:
             self.dino_rect.y -= self.jump_vel * 4
@@ -118,16 +125,48 @@ class Cloud:
 
 class Obstacle:
     def __init__(self, image, type):
-        pass        
+        self.image = image
+        self.type = type
+        self.rect = self.image[self.type].get_rect()
+        self.rect.x = SCREEN_WIDTH
+        
+               
     def update(self):
+        self.rect.x -= game_speed
+        if self.rect.x < -self.rect.width:
+            obstacles.pop()
+ 
+    def draw(self, SCREEN):
+        SCREEN.blit(self.image[self.type], self.rect)
+
+class SmallCactus(Obstacle):
+    def __init__(self, image):
+        self.type = random.randint (0, 2)
+        super().__init__(image, self.type)
+        self.rect.y = 325
+
+class LargeCactus(Obstacle):
+    def __init__(self, image):
+        self.type = random.randint (0, 2)
+        super().__init__(image, self.type)
+        self.rect.y = 300
+
+class Bird(Obstacle):
+    def __init__(self, image):
+        self.type = 0
+        super().__init__(image, self.type)
+        self.rect.y = 250
+        self.index = 0
     
     def draw(self, SCREEN):
-
-
+        if self.index >= 9:
+            self.index = 0
+        SCREEN.blit(self.image[self.index//5], self.rect)
+        self.index += 1
 
 
 def main():
-    global game_speed, x_pos_bg, y_pos_bg, points
+    global game_speed, x_pos_bg, y_pos_bg, points, obstacles
     run = True
     clock = pygame.time.Clock()
     player = Dinosaur()
@@ -137,6 +176,7 @@ def main():
     y_pos_bg = 380
     points = 0
     font = pygame.font.Font("freesansbold.ttf", 20)
+    obstacles = []
 
     def score():
         global points, game_speed
@@ -170,6 +210,20 @@ def main():
         
         player.draw(SCREEN)
         player.update(userImput)
+
+        if len(obstacles) == 0:
+            if random.randint(0, 2) == 0:
+                obstacles.append(SmallCactus(SMALL_CACTUS))
+            elif random.randint(0, 2) == 1:
+                obstacles.append(LargeCactus(LARGE_CACTUS))
+            elif random.randint(0, 2) == 2:
+                obstacles.append(Bird(BIRD))
+        
+        for obstacle in obstacles:
+            obstacle.draw(SCREEN)
+            obstacle.update()
+            if player.dino_rect.colliderect(obstacle.rect):
+                pygame.draw.rect(SCREEN, (255, 0, 0), player.dino_rect, 2)
 
         background()
 
